@@ -8,6 +8,7 @@
     <artifactId>oglofus-commons</artifactId>
     <version>1.0.1</version>
     <name>OglofusCommons</name>
+    <packaging>pom</packaging>
 
     <developers>
         <developer>
