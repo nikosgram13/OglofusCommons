@@ -37,7 +37,13 @@ public class JsonStorageDriver< T > implements StorageDriver< T >
     protected JsonStorageDriver( ConfigurationDriver< T > driver )
     {
         this.driver = driver;
-        path = Paths.get( driver.workDirectory.toString() + "/" + driver.name + "." + ConfigurationType.Json.extension );
+        path = Paths.get(
+                driver.workDirectory.toString() +
+                        "/" +
+                        driver.name +
+                        "." +
+                        ConfigurationType.Json.extension
+        );
     }
 
     public boolean create()
@@ -63,7 +69,10 @@ public class JsonStorageDriver< T > implements StorageDriver< T >
     public void save()
     {
         if ( !create() ) return;
-        try ( OutputStreamWriter writer = new OutputStreamWriter( new FileOutputStream( path.toFile() ), Charset.forName( "UTF-8" ) ) )
+        try ( OutputStreamWriter writer = new OutputStreamWriter(
+                new FileOutputStream( path.toFile() ),
+                Charset.forName( "UTF-8" )
+        ) )
         {
             GSON.toJson( GSON.toJsonTree( driver.model ), writer );
         } catch ( IOException e )
@@ -89,7 +98,10 @@ public class JsonStorageDriver< T > implements StorageDriver< T >
         {
             e.printStackTrace();
         }
-        try ( InputStreamReader reader = new InputStreamReader( new FileInputStream( path.toFile() ), Charset.forName( "UTF-8" ) ) )
+        try ( InputStreamReader reader = new InputStreamReader(
+                new FileInputStream( path.toFile() ),
+                Charset.forName( "UTF-8" )
+        ) )
         {
             driver.model = GSON.fromJson( reader, driver.configuration );
         } catch ( IOException e )

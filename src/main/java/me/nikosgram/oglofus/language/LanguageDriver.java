@@ -26,10 +26,10 @@ import java.util.Map;
 
 public class LanguageDriver< T >
 {
-    protected final Class< T >               configuration;
-    protected final Path                     workDirectory;
+    protected final Class< T > configuration;
+    protected final Path workDirectory;
     protected final ConfigurationDriver< T > defaultLanguage;
-    protected final ConfigurationType        configurationType;
+    protected final ConfigurationType configurationType;
     protected final Map< Language, ConfigurationDriver< T > > driverMap = new HashMap< Language, ConfigurationDriver< T > >();
 
     public LanguageDriver( Class< T > configuration, Path workDirectory, ConfigurationType configurationType )
@@ -37,7 +37,12 @@ public class LanguageDriver< T >
         this.configuration = configuration;
         this.workDirectory = workDirectory;
         this.configurationType = configurationType;
-        this.defaultLanguage = new ConfigurationDriver< T >( configuration, workDirectory, configurationType, "language" );
+        this.defaultLanguage = new ConfigurationDriver< T >(
+                configuration,
+                workDirectory,
+                configurationType,
+                "language"
+        );
     }
 
     public T getModel( Language language )
@@ -71,14 +76,27 @@ public class LanguageDriver< T >
             {
                 continue;
             }
-            Language language = Language.getLanguage( file.replace( "language_", "" ).replace( "." + configurationType.getExtension(), "" ) );
+            Language language = Language.getLanguage(
+                    file.replace( "language_", "" ).replace(
+                            "." +
+                                    configurationType.getExtension(), ""
+                    )
+            );
             if ( language == null )
             {
                 continue;
             }
             if ( !driverMap.containsKey( language ) || driverMap.get( language ) == null )
             {
-                driverMap.put( language, new ConfigurationDriver< T >( configuration, workDirectory, configurationType, "language_" + language.getId() ) );
+                driverMap.put(
+                        language,
+                        new ConfigurationDriver< T >(
+                                configuration,
+                                workDirectory,
+                                configurationType,
+                                "language_" + language.getId()
+                        )
+                );
             }
             driverMap.get( language ).load();
         }

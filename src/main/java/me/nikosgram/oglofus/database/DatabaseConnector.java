@@ -8,10 +8,11 @@ import org.apache.commons.codec.net.URLCodec;
 
 import java.sql.Connection;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.*;
 
-public class DatabaseConnector implements DatabaseDriver
+public class DatabaseConnector
 {
     private static final StringEncoder encoder = new URLCodec();
     private static final StringDecoder decoder = new URLCodec();
@@ -25,22 +26,12 @@ public class DatabaseConnector implements DatabaseDriver
 
     public static String reformedListToString( List< String > list, Boolean encode )
     {
-        List< String > StringList = new ArrayList< String >();
-        if ( encode )
+        List< String > returned = new ArrayList< String >();
+        for ( String s : list )
         {
-            for ( String s : list )
-            {
-                StringList.add( encodeString( s ) );
-            }
-
-        } else
-        {
-            for ( String s : list )
-            {
-                StringList.add( s.trim() );
-            }
+            returned.add( encode ? encodeString( s ) : s.trim() );
         }
-        String Returned = "StartAT*" + StringList.toString() + "*EndAT";
+        String Returned = "StartAT*" + returned.toString() + "*EndAT";
         return Returned.replaceFirst( "StartAT\\*\\[", "" ).replaceFirst( "\\]\\*EndAT", "" );
     }
 
@@ -182,136 +173,366 @@ public class DatabaseConnector implements DatabaseDriver
     {
         if ( checkConnection() )
         {
-            String reformedMessage = reformMessage( message );
             Statement statement = getStatement();
             try
             {
-                statement.execute( reformedMessage );
-            } catch ( Exception e )
+                statement.execute( reformMessage( message ) );
+            } catch ( SQLException e )
             {
                 throw new RuntimeException( e );
+            } finally
+            {
+                closeStatement( statement );
             }
-            closeStatement( statement );
         }
     }
 
-    public Object get( String message, String wanted )
+    public Optional< Object > getObject( String message, String wanted )
     {
-        Object object = null;
+        Object returned = null;
         if ( checkConnection() )
         {
-            String reformedMessage = reformMessage( message );
-            ResultSet resultSet = getResultSet( reformedMessage );
+            ResultSet result = getResultSet( reformMessage( message ) );
             try
             {
-                while ( resultSet.next() )
+                if ( result.next() )
                 {
-                    object = resultSet.getObject( wanted );
+                    try
+                    {
+                        returned = result.getObject( wanted );
+                    } catch ( SQLException ignored ) {}
                 }
-            } catch ( Exception e )
+            } catch ( SQLException e )
             {
                 throw new RuntimeException( e );
+            } finally
+            {
+                closeResultSet( result );
             }
-            closeResultSet( resultSet );
         }
-        return object;
+        if ( returned == null )
+        {
+            return Optional.empty();
+        }
+        return Optional.of( returned );
     }
 
-    public final String getString( String message, String wanted )
+    public Optional< String > getString( String message, String wanted )
     {
-        Object object = get( message, wanted );
-        if ( ( object != null ) && ( ( object instanceof String ) ) )
+        String returned = null;
+        if ( checkConnection() )
         {
-            return decodeString( ( String ) object );
+            ResultSet result = getResultSet( reformMessage( message ) );
+            try
+            {
+                if ( result.next() )
+                {
+                    try
+                    {
+                        returned = result.getString( wanted );
+                    } catch ( SQLException ignored ) {}
+                }
+            } catch ( SQLException e )
+            {
+                throw new RuntimeException( e );
+            } finally
+            {
+                closeResultSet( result );
+            }
         }
-        return "";
+        if ( returned == null )
+        {
+            return Optional.empty();
+        }
+        return Optional.of( returned );
     }
 
-    public Integer getInteger( String message, String wanted )
+    public Optional< Integer > getInteger( String message, String wanted )
     {
-        Object object = get( message, wanted );
-        if ( ( object != null ) && ( ( object instanceof Integer ) ) )
+        Integer returned = null;
+        if ( checkConnection() )
         {
-            return ( Integer ) object;
+            ResultSet result = getResultSet( reformMessage( message ) );
+            try
+            {
+                if ( result.next() )
+                {
+                    try
+                    {
+                        returned = result.getInt( wanted );
+                    } catch ( SQLException ignored ) {}
+                }
+            } catch ( SQLException e )
+            {
+                throw new RuntimeException( e );
+            } finally
+            {
+                closeResultSet( result );
+            }
         }
-        return 0;
+        if ( returned == null )
+        {
+            return Optional.empty();
+        }
+        return Optional.of( returned );
     }
 
-    public Boolean getBoolean( String message, String wanted )
+    public Optional< Boolean > getBoolean( String message, String wanted )
     {
-        Object object = get( message, wanted );
-        if ( ( object != null ) && ( ( object instanceof Boolean ) ) )
+        Boolean returned = null;
+        if ( checkConnection() )
         {
-            return ( Boolean ) object;
+            ResultSet result = getResultSet( reformMessage( message ) );
+            try
+            {
+                if ( result.next() )
+                {
+                    try
+                    {
+                        returned = result.getBoolean( wanted );
+                    } catch ( SQLException ignored ) {}
+                }
+            } catch ( SQLException e )
+            {
+                throw new RuntimeException( e );
+            } finally
+            {
+                closeResultSet( result );
+            }
         }
-        return null;
+        if ( returned == null )
+        {
+            return Optional.empty();
+        }
+        return Optional.of( returned );
     }
 
     public Boolean exists( String message )
     {
-        Boolean aBoolean = false;
+        Boolean returned = false;
         if ( checkConnection() )
         {
-            String reformedMessage = reformMessage( message );
-            ResultSet resultSet = getResultSet( reformedMessage );
+            ResultSet result = getResultSet( reformMessage( message ) );
             try
             {
-                aBoolean = resultSet.next();
-            } catch ( Exception e )
+                returned = result.next();
+            } catch ( SQLException e )
             {
                 throw new RuntimeException( e );
+            } finally
+            {
+                closeResultSet( result );
             }
-            closeResultSet( resultSet );
         }
-        return aBoolean;
+        return returned;
     }
 
-    public List< Object > getList( String message, String wanted )
+    public List< Object > getObjectList( String message, String wanted )
     {
         List< Object > objects = new ArrayList< Object >();
         if ( checkConnection() )
         {
-            String reformedMessage = reformMessage( message );
-            ResultSet resultSet = getResultSet( reformedMessage );
+            ResultSet result = getResultSet( reformMessage( message ) );
             try
             {
-                while ( resultSet.next() )
+                while ( result.next() )
                 {
-                    objects.add( resultSet.getObject( wanted ) );
+                    try
+                    {
+                        objects.add( result.getObject( wanted ) );
+                    } catch ( SQLException ignored ) {}
                 }
-            } catch ( Exception e )
+            } catch ( SQLException e )
             {
                 throw new RuntimeException( e );
+            } finally
+            {
+                closeResultSet( result );
             }
-            closeResultSet( resultSet );
         }
         return objects;
     }
 
     public List< String > getStringList( String message, String wanted )
     {
-        List< String > strings = new ArrayList< String >();
-        for ( Object object : getList( message, wanted ) )
+        List< String > objects = new ArrayList< String >();
+        if ( checkConnection() )
         {
-            if ( ( object != null ) && ( ( object instanceof String ) ) )
+            ResultSet result = getResultSet( reformMessage( message ) );
+            try
             {
-                strings.add( decodeString( ( String ) object ) );
+                while ( result.next() )
+                {
+                    try
+                    {
+                        objects.add( result.getString( wanted ) );
+                    } catch ( SQLException ignored ) {}
+                }
+            } catch ( SQLException e )
+            {
+                throw new RuntimeException( e );
+            } finally
+            {
+                closeResultSet( result );
             }
         }
-        return strings;
+        return objects;
     }
 
     public List< Integer > getIntegerList( String message, String wanted )
     {
-        List< Integer > integers = new ArrayList< Integer >();
-        for ( Object object : getList( message, wanted ) )
+        List< Integer > objects = new ArrayList< Integer >();
+        if ( checkConnection() )
         {
-            if ( ( object != null ) && ( ( object instanceof Integer ) ) )
+            ResultSet result = getResultSet( reformMessage( message ) );
+            try
             {
-                integers.add( ( Integer ) object );
+                while ( result.next() )
+                {
+                    try
+                    {
+                        objects.add( result.getInt( wanted ) );
+                    } catch ( SQLException ignored ) {}
+                }
+            } catch ( SQLException e )
+            {
+                throw new RuntimeException( e );
+            } finally
+            {
+                closeResultSet( result );
             }
         }
-        return integers;
+        return objects;
+    }
+
+    public List< Boolean > getBooleanList( String message, String wanted )
+    {
+        List< Boolean > objects = new ArrayList< Boolean >();
+        if ( checkConnection() )
+        {
+            ResultSet result = getResultSet( reformMessage( message ) );
+            try
+            {
+                while ( result.next() )
+                {
+                    try
+                    {
+                        objects.add( result.getBoolean( wanted ) );
+                    } catch ( SQLException ignored ) {}
+                }
+            } catch ( SQLException e )
+            {
+                throw new RuntimeException( e );
+            } finally
+            {
+                closeResultSet( result );
+            }
+        }
+        return objects;
+    }
+
+    public Map< String, Object > getObjectMap( String message, String[] wanted )
+    {
+        Map< String, Object > returned = new HashMap< String, Object >();
+        if ( checkConnection() )
+        {
+            ResultSet result = getResultSet( reformMessage( message ) );
+            try
+            {
+                while ( result.next() )
+                {
+                    for ( String want : wanted )
+                    {
+                        try
+                        {
+                            returned.put( want, result.getObject( want ) );
+                        } catch ( SQLException ignored ) {}
+                    }
+                }
+            } catch ( SQLException e )
+            {
+                throw new RuntimeException( e );
+            } finally { closeResultSet( result ); }
+        }
+        return returned;
+    }
+
+    public Map< String, String > getStringMap( String message, String[] wanted )
+    {
+        Map< String, String > returned = new HashMap< String, String >();
+        if ( checkConnection() )
+        {
+            ResultSet result = getResultSet( reformMessage( message ) );
+            try
+            {
+                while ( result.next() )
+                {
+                    for ( String want : wanted )
+                    {
+                        try
+                        {
+                            returned.put( want, result.getString( want ) );
+                        } catch ( SQLException ignored ) {}
+                    }
+                }
+            } catch ( SQLException e )
+            {
+                throw new RuntimeException( e );
+            } finally { closeResultSet( result ); }
+        }
+        return returned;
+    }
+
+    public Map< String, Integer > getIntegerMap( String message, String[] wanted )
+    {
+        Map< String, Integer > returned = new HashMap< String, Integer >();
+        if ( checkConnection() )
+        {
+            ResultSet result = getResultSet( reformMessage( message ) );
+            try
+            {
+                while ( result.next() )
+                {
+                    for ( String want : wanted )
+                    {
+                        try
+                        {
+                            returned.put( want, result.getInt( want ) );
+                        } catch ( SQLException ignored ) {}
+                    }
+                }
+            } catch ( SQLException e )
+            {
+                throw new RuntimeException( e );
+            } finally { closeResultSet( result ); }
+        }
+        return returned;
+    }
+
+    public Map< String, Boolean > getBooleanMap( String message, String[] wanted )
+    {
+        Map< String, Boolean > returned = new HashMap< String, Boolean >();
+        if ( checkConnection() )
+        {
+            ResultSet result = getResultSet( reformMessage( message ) );
+            try
+            {
+                while ( result.next() )
+                {
+                    for ( String want : wanted )
+                    {
+                        try
+                        {
+                            returned.put( want, result.getBoolean( want ) );
+                        } catch ( SQLException ignored ) {}
+                    }
+                }
+            } catch ( SQLException e )
+            {
+                throw new RuntimeException( e );
+            } finally { closeResultSet( result ); }
+        }
+        return returned;
     }
 
     public Boolean existsInside( String message, String wanted, String type )
@@ -333,7 +554,7 @@ public class DatabaseConnector implements DatabaseDriver
             try
             {
                 return getConnection().createStatement();
-            } catch ( Exception e )
+            } catch ( SQLException e )
             {
                 throw new RuntimeException( e );
             }
@@ -353,7 +574,7 @@ public class DatabaseConnector implements DatabaseDriver
             try
             {
                 return getStatement().executeQuery( message );
-            } catch ( Exception e )
+            } catch ( SQLException e )
             {
                 closeStatement( statement );
                 throw new RuntimeException( e );
@@ -367,25 +588,25 @@ public class DatabaseConnector implements DatabaseDriver
         try
         {
             statement.close();
-        } catch ( Exception e )
+        } catch ( SQLException e )
         {
             throw new RuntimeException( e );
         }
     }
 
-    public void closeResultSet( ResultSet resultSet )
+    public void closeResultSet( ResultSet result )
     {
         try
         {
-            closeStatement( resultSet.getStatement() );
-        } catch ( Exception e )
+            closeStatement( result.getStatement() );
+        } catch ( SQLException e )
         {
             throw new RuntimeException( e );
         }
         try
         {
-            resultSet.close();
-        } catch ( Exception e )
+            result.close();
+        } catch ( SQLException e )
         {
             throw new RuntimeException( e );
         }
@@ -393,162 +614,93 @@ public class DatabaseConnector implements DatabaseDriver
 
     public Boolean exists( String table, String where, String like )
     {
-        Boolean ReturnedBoolean = false;
+        Boolean returned = false;
         if ( checkConnection() )
         {
-            String reformedMessage = null;
-            reformedMessage = reformMessage(
-                    "SELECT * FROM " +
-                            table +
-                            " WHERE " +
-                            where +
-                            " LIKE " +
-                            encodeString( like )
+            ResultSet result = getResultSet(
+                    reformMessage(
+                            "SELECT * FROM " +
+                                    table +
+                                    " WHERE " +
+                                    where +
+                                    " LIKE " +
+                                    encodeString( like )
+                    )
             );
-            ResultSet resultSet = getResultSet( reformedMessage );
             try
             {
-                ReturnedBoolean = resultSet.next();
-            } catch ( Exception e )
+                returned = result.next();
+            } catch ( SQLException e )
             {
                 throw new RuntimeException( e );
-            }
-            closeResultSet( resultSet );
+            } finally { closeResultSet( result ); }
         }
-        return ReturnedBoolean;
+        return returned;
     }
 
-    public Object getObject( String table, String where, String like, String Wanted )
+    public Optional< Object > getObject( String table, String where, String like, String wanted )
     {
-        Object object = null;
-        if ( checkConnection() )
-        {
-            String reformedMessage = null;
-            reformedMessage = reformMessage(
-                    "SELECT * FROM " +
-                            table +
-                            " WHERE " +
-                            where +
-                            " LIKE " +
-                            encodeString( like )
-            );
-            ResultSet resultSet = getResultSet( reformedMessage );
-            try
-            {
-                while ( resultSet.next() )
-                {
-                    object = resultSet.getObject( Wanted );
-                }
-            } catch ( Exception e )
-            {
-                throw new RuntimeException( e );
-            }
-            closeResultSet( resultSet );
-        }
-        return object;
+        return getObject( "SELECT * FROM " + table + " WHERE " + where + " LIKE " + encodeString( like ), wanted );
     }
 
-    public String getString( String table, String where, String like, String Wanted )
+    public Optional< String > getString( String table, String where, String like, String wanted )
     {
-        Object object = getObject( table, where, like, Wanted );
-        if ( object == null )
-        {
-            return "";
-        }
-        if ( ( object instanceof String ) )
-        {
-            return decodeString( ( String ) object );
-        }
-        return decodeString( object.toString() );
+        return getString( "SELECT * FROM " + table + " WHERE " + where + " LIKE " + encodeString( like ), wanted );
     }
 
-    public Map< String, Object > getObjectMap( String table, String where, String like, String[] Wanted )
+    public Optional< Integer > getInteger( String table, String where, String like, String wanted )
     {
-        Map< String, Object > ReturnedMap = new HashMap< String, Object >();
-        for ( String s : Wanted )
-        {
-            ReturnedMap.put( s, getObject( table, where, like, s ) );
-        }
-        return ReturnedMap;
+        return getInteger( "SELECT * FROM " + table + " WHERE " + where + " LIKE " + encodeString( like ), wanted );
     }
 
-    public Map< String, String > getStringMap( String table, String where, String like, String[] Wanted )
+    public Optional< Boolean > getBoolean( String table, String where, String like, String wanted )
     {
-        Map< String, String > ReturnedMap = new HashMap< String, String >();
-        for ( String s : Wanted )
-        {
-            ReturnedMap.put( s, getString( table, where, like, s ) );
-        }
-        return ReturnedMap;
+        return getBoolean( "SELECT * FROM " + table + " WHERE " + where + " LIKE " + encodeString( like ), wanted );
     }
 
-    public List< Object > getList( String table, String where, String like, String Wanted )
+    public Map< String, Object > getObjectMap( String table, String where, String like, String[] wanted )
     {
-        List< Object > objects = new ArrayList< Object >();
-        if ( checkConnection() )
-        {
-            String reformedMessage = null;
-            reformedMessage = reformMessage(
-                    "SELECT * FROM " +
-                            table +
-                            " WHERE " +
-                            where +
-                            " LIKE " +
-                            encodeString( like )
-            );
-            ResultSet resultSet = getResultSet( reformedMessage );
-            try
-            {
-                while ( resultSet.next() )
-                {
-                    objects.add( resultSet.getObject( Wanted ) );
-                }
-            } catch ( Exception e )
-            {
-                throw new RuntimeException( e );
-            }
-            closeResultSet( resultSet );
-        }
-        return objects;
+        return getObjectMap( "SELECT * FROM " + table + " WHERE " + where + " LIKE " + encodeString( like ), wanted );
     }
 
-    public List< String > getStringList( String table, String where, String like, String Wanted )
+    public Map< String, String > getStringMap( String table, String where, String like, String[] wanted )
     {
-        List< String > strings = new ArrayList< String >();
-        for ( Object object : getList( table, where, like, Wanted ) )
-        {
-            if ( object != null )
-            {
-                if ( ( object instanceof String ) )
-                {
-                    strings.add( decodeString( ( String ) object ) );
-                } else strings.add( decodeString( object.toString() ) );
-            }
-        }
-        return strings;
+        return getStringMap( "SELECT * FROM " + table + " WHERE " + where + " LIKE " + encodeString( like ), wanted );
     }
 
-    public Boolean existsInside( String table, String where, String like, String Wanted, String Type )
+    public Map< String, Integer > getIntegerMap( String table, String where, String like, String[] wanted )
     {
-        for ( String s : getStringList( table, where, like, Wanted ) )
-        {
-            if ( s.equals( Type ) )
-            {
-                return true;
-            }
-        }
-        return false;
+        return getIntegerMap( "SELECT * FROM " + table + " WHERE " + where + " LIKE " + encodeString( like ), wanted );
     }
 
-    public void createTable( String table, String[] values )
+    public Map< String, Boolean > getBooleanMap( String table, String where, String like, String[] wanted )
     {
-        execute(
-                "CREATE TABLE IF NOT EXISTS " +
-                        table +
-                        " (" +
-                        reformedListToString( values, false ) +
-                        ")"
-        );
+        return getBooleanMap( "SELECT * FROM " + table + " WHERE " + where + " LIKE " + encodeString( like ), wanted );
+    }
+
+    public List< Object > getObjectList( String table, String where, String like, String wanted )
+    {
+        return getObjectList( "SELECT * FROM " + table + " WHERE " + where + " LIKE " + encodeString( like ), wanted );
+    }
+
+    public List< String > getStringList( String table, String where, String like, String wanted )
+    {
+        return getStringList( "SELECT * FROM " + table + " WHERE " + where + " LIKE " + encodeString( like ), wanted );
+    }
+
+    public List< Integer > getIntegerList( String table, String where, String like, String wanted )
+    {
+        return getIntegerList( "SELECT * FROM " + table + " WHERE " + where + " LIKE " + encodeString( like ), wanted );
+    }
+
+    public List< Boolean > getBooleanList( String table, String where, String like, String wanted )
+    {
+        return getBooleanList( "SELECT * FROM " + table + " WHERE " + where + " LIKE " + encodeString( like ), wanted );
+    }
+
+    public void createTable( String table, String... values )
+    {
+        execute( "CREATE TABLE IF NOT EXISTS " + table + " (" + reformedListToString( values, false ) + ")" );
     }
 
     public void insert( String table, Map< String, String > values )
@@ -564,15 +716,15 @@ public class DatabaseConnector implements DatabaseDriver
         );
     }
 
-    public void update( String table, String where, String like, String Change, String To )
+    public void update( String table, String where, String like, String change, String to )
     {
         execute(
                 "UPDATE " +
                         table +
                         " SET " +
-                        Change +
+                        change +
                         " = " +
-                        encodeString( To ) +
+                        encodeString( to ) +
                         " WHERE " +
                         where +
                         " LIKE " +
@@ -582,9 +734,20 @@ public class DatabaseConnector implements DatabaseDriver
 
     public void update( String table, String where, String like, Map< String, String > values )
     {
-        for ( String Change : values.keySet() )
+        List< String > settable = new ArrayList< String >();
+        for ( String change : values.keySet() )
         {
-            update( table, where, like, Change, ( String ) values.get( Change ) );
+            settable.add( change + "=" + encodeString( values.get( change ) ) );
         }
+        execute(
+                "UPDATE " +
+                        table +
+                        " SET " +
+                        reformedListToString( settable, false ) +
+                        " WHERE " +
+                        where +
+                        " LIKE " +
+                        encodeString( like )
+        );
     }
 }

@@ -45,7 +45,13 @@ public class YamlStorageDriver< T > implements StorageDriver< T >
         representer.addClassTag( driver.configuration, Tag.MAP );
         YAML = new Yaml( representer, dumperOptions );
         this.driver = driver;
-        path = Paths.get( driver.workDirectory.toString() + "/" + driver.name + "." + ConfigurationType.Yaml.extension );
+        path = Paths.get(
+                driver.workDirectory.toString() +
+                        "/" +
+                        driver.name +
+                        "." +
+                        ConfigurationType.Yaml.extension
+        );
     }
 
     public boolean create()
@@ -72,7 +78,10 @@ public class YamlStorageDriver< T > implements StorageDriver< T >
     {
         if ( !create() ) return;
         if ( driver.model == null ) return;
-        try ( OutputStreamWriter writer = new OutputStreamWriter( new FileOutputStream( path.toFile() ), Charset.forName( "UTF-8" ) ) )
+        try ( OutputStreamWriter writer = new OutputStreamWriter(
+                new FileOutputStream( path.toFile() ),
+                Charset.forName( "UTF-8" )
+        ) )
         {
             YAML.dump( driver.model, writer );
         } catch ( IOException e )
@@ -98,7 +107,9 @@ public class YamlStorageDriver< T > implements StorageDriver< T >
         {
             e.printStackTrace();
         }
-        try ( InputStreamReader reader = new InputStreamReader( new FileInputStream( path.toFile() ), Charset.forName( "UTF-8" ) ) )
+        try ( InputStreamReader reader = new InputStreamReader(
+                new FileInputStream( path.toFile() ), Charset.forName( "UTF-8" )
+        ) )
         {
             driver.model = YAML.loadAs( reader, driver.configuration );
         } catch ( IOException e )
