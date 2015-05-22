@@ -1,5 +1,6 @@
 package me.nikosgram.oglofus.database;
 
+import com.google.common.base.Optional;
 import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.EncoderException;
 import org.apache.commons.codec.StringDecoder;
@@ -210,11 +211,7 @@ public class DatabaseConnector
                 closeResultSet( result );
             }
         }
-        if ( returned == null )
-        {
-            return Optional.empty();
-        }
-        return Optional.of( returned );
+        return Optional.fromNullable( returned );
     }
 
     public Optional< String > getString( String message, String wanted )
@@ -240,11 +237,7 @@ public class DatabaseConnector
                 closeResultSet( result );
             }
         }
-        if ( returned == null )
-        {
-            return Optional.empty();
-        }
-        return Optional.of( returned );
+        return Optional.fromNullable( returned );
     }
 
     public Optional< Integer > getInteger( String message, String wanted )
@@ -270,11 +263,7 @@ public class DatabaseConnector
                 closeResultSet( result );
             }
         }
-        if ( returned == null )
-        {
-            return Optional.empty();
-        }
-        return Optional.of( returned );
+        return Optional.fromNullable( returned );
     }
 
     public Optional< Boolean > getBoolean( String message, String wanted )
@@ -300,11 +289,7 @@ public class DatabaseConnector
                 closeResultSet( result );
             }
         }
-        if ( returned == null )
-        {
-            return Optional.empty();
-        }
-        return Optional.of( returned );
+        return Optional.fromNullable( returned );
     }
 
     public Boolean exists( String message )
